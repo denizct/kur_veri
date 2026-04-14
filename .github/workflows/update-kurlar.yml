@@ -1,0 +1,35 @@
+name: TCMB Günlük Kur Çekici
+
+on:
+  schedule:
+    # Her gün Türkiye saati ile 09:00'da çalışır (UTC'ye göre 06:00)
+    # TCMB kurları normalde saat 15:30'da açıklar. 
+    # Sabah 9'da çekilen veri genellikle bir önceki günün kapanış verisidir.
+    - cron: '0 6 * * *'
+  workflow_dispatch: # GitHub üzerinden manuel olarak "Run workflow" butonuyla tetikleyebilmenizi sağlar
+
+jobs:
+  guncelle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repoyu Çek (Checkout)
+        uses: actions/checkout@v4
+
+      - name: Python Ortamını Hazırla
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Gerekli Paketleri Kur
+        run: pip install requests beautifulsoup4
+
+      - name: Python Scriptini Çalıştır
+        run: python tcmb_kuru.py
+
+      - name: Değişiklikleri GitHub'a Gönder (Commit & Push)
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add data.csv
+          git diff --quiet && git diff --staged --quiet || git commit -m "🤖 Günlük kur verileri ('data.csv') eklendi"
+          git push
